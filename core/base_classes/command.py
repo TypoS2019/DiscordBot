@@ -1,8 +1,9 @@
 class Command:
-    def __init__(self, cmd, desc, enabled=True):
+    def __init__(self, cmd, desc, client, enabled=True):
         self.cmd = cmd
         self.desc = desc
         self.enabled = enabled
+        self.client = client
 
-    def run(self, args, message):
+    async def run(self, args, message):
         message.channel.send('Hello!')

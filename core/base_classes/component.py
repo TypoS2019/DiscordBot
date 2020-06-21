@@ -13,10 +13,11 @@ class Component:
         self.commands = []
 
     async def run(self, args, message):
+        cmd = args[0]
         for command in self.commands:
-            if command.cmd == args[0]:
+            if command.cmd == cmd:
                 args.pop(0)
-                command.run(args, message)
+                await command.run(args, message)
 
     def setup(self, client):
         discord_logger.log("initializing " + self.name, 'blue')
