@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from core import discord_logger
+from core.utils import discord_logger
 
 
 class DataMapper():
@@ -42,3 +42,6 @@ class DataMapper():
         query = {"server_id": guild.id}
         value = {"$set": {specific: value}}
         self.collection.update_one(query, value)
+
+    def insert_doc(self, doc):
+        self.collection.insert_one(doc)

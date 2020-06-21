@@ -1,6 +1,6 @@
 import discord
 
-from core import discord_logger
+from core.utils import discord_logger
 
 
 class Component:
@@ -43,3 +43,6 @@ class Component:
         else:
             embed.add_field(name='This is where i would put my commands,', value='If i had any...')
         return embed
+
+    async def default_run(self, message):
+        pass

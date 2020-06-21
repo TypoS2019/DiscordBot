@@ -1,15 +1,12 @@
-import asyncio
 import configparser
-import datetime
-
-import emoji
 
 import discord
 
 from components.configurator import Configurator
 from components.time_messager import TimeMessager
-from core import discord_logger
-from core.help_menu import Menu
+from core.utils import discord_logger
+from core.data.data_manager import DataMapper
+from core.utils.help_menu import Menu
 
 
 class HackerBot(discord.Client):
@@ -23,6 +20,14 @@ class HackerBot(discord.Client):
         self.prefix = config.get('GlobalSettings', 'default_prefix')
         discord_logger.log("Global prefix: '" + self.prefix + "'", 'header')
 
+        self.data_mapper_servers = DataMapper(config.get("DatabaseSettings", "mongo_uri"),
+                                              config.get("DatabaseSettings", "mongo_pass"),
+                                              config.get("DatabaseSettings", "mongo_database"),
+                                              config.get("DatabaseSettings", "mongo_collection_servers"))
+        self.data_mapper_members = DataMapper(config.get("DatabaseSettings", "mongo_uri"),
+                                              config.get("DatabaseSettings", "mongo_pass"),
+                                              config.get("DatabaseSettings", "mongo_database"),
+                                              config.get("DatabaseSettings", "mongo_collection_members"))
         self.menu_id = config.get('MenuSettings', 'menu_id')
         self.menu_up = config.get('MenuSettings', 'menu_up_indicator')
         self.menu_down = config.get('MenuSettings', 'menu_down_indicator')
@@ -40,28 +45,38 @@ class HackerBot(discord.Client):
         self.menu = Menu(self.components, self.menu_id, self.menu_up, self.menu_down, self.menu_select, self.menu_back)
 
     async def router(self, args, message):
-        print(args)
         if args[0] == '':
             await message.channel.send('Invalid Command')
             return
         if args[0] == 'menu':
             await self.menu.send_menu(args, message)
+        cmd = args[0]
         for component in self.components:
-            if args[0] == component.prefix:
+            if cmd == component.prefix:
                 args.pop(0)
                 await component.run(args, message)
 
     async def on_ready(self):
-        string = "loaded components: "
-        for component in self.components:
-            string += component.name + ", "
-        discord_logger.log(string[:-2], 'red')
+        self.data_mapper_servers.prepare_all_discord_server_data(self)
+        string = "No components loaded"
+        if len(self.components) > 0:
+            string = "loaded components: "
+            for component in self.components:
+                string += component.name + ", "
+            string = string[:-2]
+        discord_logger.log(string, 'red')
         discord_logger.log("Ready - waiting for messages...", 'yellow')
 
     async def on_message(self, message):
-        if message.content.startswith(self.prefix):
-            args = message.content[len(self.prefix):]
+        prefix = self.data_mapper_servers.get_specific_server_data(message.guild, "server_prefix")['server_prefix']
+        if prefix is None:
+            prefix = self.prefix
+        if message.content.startswith(prefix):
+            args = message.content[len(prefix):]
             await self.router(args.split(' '), message)
+        else:
+            for component in self.components:
+                await component.default_run(message)
 
     async def on_reaction_add(self, reaction, user):
         if user.id != self.user.id:
