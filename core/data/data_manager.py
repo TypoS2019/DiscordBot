@@ -7,10 +7,8 @@ class DataMapper():
     def __init__(self, uri, password, database, collection):
         discord_logger.log("Starting Data service", 'yellow')
         uri = uri.replace("<password>", password)
-
         self.client = MongoClient(uri)
         discord_logger.log("Connected to MongoDB cluster", 'yellow')
-
         self.database = self.client[database]
         self.collection = self.database[collection]
 
@@ -29,9 +27,9 @@ class DataMapper():
             self.collection.insert_one(doc)
 
     def get_server_data(self, guild):
-        return self.collection.find_one({"server_id": guild.id})
+        return self.collection.find({"server_id": guild.id})
 
-    def get_all_specific_server_data(self, specific):
+    def get_all_specific_data(self, specific):
         return self.collection.find({}, {"_id": 0, specific: 1})
 
     def get_specific_server_data(self, guild, specific):
@@ -45,3 +43,6 @@ class DataMapper():
 
     def insert_doc(self, doc):
         self.collection.insert_one(doc)
+
+    def get_data(self):
+        return self.collection.find()

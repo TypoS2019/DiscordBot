@@ -39,7 +39,7 @@ class Component:
     def set_help_menu_fields(self, embed):
         if len(self.commands) > 0:
             for idx, command in enumerate(self.commands):
-                embed.add_field(name=str(idx) + '. command: `' + command.cmd + '`', value=command.desc)
+                embed.add_field(name='`' + command.cmd + '`', value=command.desc, inline=False)
         else:
             embed.add_field(name='This is where i would put my commands,', value='If i had any...')
         return embed

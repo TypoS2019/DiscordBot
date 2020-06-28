@@ -1,6 +1,7 @@
 import configparser
 
 import discord
+import emoji
 
 from components.configurator import Configurator
 from components.time_messager import TimeMessager
@@ -33,13 +34,14 @@ class HackerBot(discord.Client):
         self.menu_down = config.get('MenuSettings', 'menu_down_indicator')
         self.menu_select = config.get('MenuSettings', 'menu_select_indicator')
         self.menu_back = config.get('MenuSettings', 'menu_back_indicator')
+        self.approved = config.get('MenuSettings', 'approved_indicator')
 
         discord_logger.log("Done initializing settings", 'yellow')
 
         self.components = []
         self.prefixes = []
 
-        self.add_component(TimeMessager(self, 'Time Messages', 'kid', ))
+        self.add_component(TimeMessager(self, 'Time Messages', 'kid', 'Kid\'s happy time messages'))
         self.add_component(Configurator(self, 'Configurator', 'config', 'Edit settings and behavior'))
 
         self.menu = Menu(self.components, self.menu_id, self.menu_up, self.menu_down, self.menu_select, self.menu_back)
@@ -68,15 +70,16 @@ class HackerBot(discord.Client):
         discord_logger.log("Ready - waiting for messages...", 'yellow')
 
     async def on_message(self, message):
-        prefix = self.data_mapper_servers.get_specific_server_data(message.guild, "server_prefix")['server_prefix']
-        if prefix is None:
-            prefix = self.prefix
-        if message.content.startswith(prefix):
-            args = message.content[len(prefix):]
-            await self.router(args.split(' '), message)
-        else:
-            for component in self.components:
-                await component.default_run(message)
+        if message.author.id != self.user.id:
+            prefix = self.data_mapper_servers.get_specific_server_data(message.guild, "server_prefix")['server_prefix']
+            if prefix is None:
+                prefix = self.prefix
+            if message.content.startswith(prefix):
+                args = message.content[len(prefix):]
+                await self.router(args.split(' '), message)
+            else:
+                for component in self.components:
+                    await component.default_run(message)
 
     async def on_reaction_add(self, reaction, user):
         if user.id != self.user.id:
