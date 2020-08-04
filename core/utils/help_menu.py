@@ -45,7 +45,8 @@ class Menu():
 
     def create_menu(self, index=0):
         embed = discord.Embed()
-        embed.title = 'help_menu_v0.3b'
+        embed.title = 'Component menu'
+        embed.description = 'Displays the available components. Navigate using the reactions'
         embed.colour = discord.Colour.from_rgb(252, 3, 127)
         self.set_menu_fields(embed, index)
         embed.set_footer(text=self.menu_id)
@@ -60,10 +61,13 @@ class Menu():
         for component in self.components:
             name = component.name
             desc = component.description
+            desc = '`' + desc + '`'
+
             if not component.enabled:
                 name = '~~' + name + '~~'
                 desc = '~~' + desc + '~~'
             elif selected == name:
                 name = '**__' + name + '__**'
                 desc = '**__' + desc + '__**'
+            name = emoji.emojize(component.icon) + ' ' + name
             embed.add_field(name=name, value=desc, inline=False)

@@ -4,6 +4,7 @@ import discord
 import emoji
 
 from components.configurator import Configurator
+from components.session_planner import GameSessions
 from components.time_messager import TimeMessager
 from core.utils import discord_logger
 from core.data.data_manager import DataMapper
@@ -42,21 +43,26 @@ class HackerBot(discord.Client):
         self.prefixes = []
 
         self.add_component(TimeMessager(self, 'Time Messages', 'kid', 'Kid\'s happy time messages'))
-        self.add_component(Configurator(self, 'Configurator', 'config', 'Edit settings and behavior'))
+        self.add_component(Configurator(self, 'Configurator', 'config', 'Edit settings and bot behavior'))
+        self.add_component(GameSessions(self, 'Game Sessions', 'session', 'Plan a session on your server'))
 
         self.menu = Menu(self.components, self.menu_id, self.menu_up, self.menu_down, self.menu_select, self.menu_back)
 
     async def router(self, args, message):
         if args[0] == '':
-            await message.channel.send('Invalid Command')
+            await message.channel.send('`Please supply a valid component`')
             return
         if args[0] == 'menu':
             await self.menu.send_menu(args, message)
+            return
         cmd = args[0]
         for component in self.components:
             if cmd == component.prefix:
                 args.pop(0)
                 await component.run(args, message)
+                break
+        else:
+            await message.channel.send('`Component not found`')
 
     async def on_ready(self):
         self.data_mapper_servers.prepare_all_discord_server_data(self)
@@ -68,6 +74,8 @@ class HackerBot(discord.Client):
             string = string[:-2]
         discord_logger.log(string, 'red')
         discord_logger.log("Ready - waiting for messages...", 'yellow')
+        game = discord.Game("tic tac toe")
+        await self.change_presence(status=discord.Status.online, activity=game)
 
     async def on_message(self, message):
         if message.author.id != self.user.id:

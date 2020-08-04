@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-from time import strftime
 
 import discord
 import emoji
@@ -12,7 +11,7 @@ from core.base_classes.component import Component
 
 class TimeMessager(Component):
     def __init__(self, client, name, prefix, description='default component', enabled=True):
-        super().__init__(client, name, prefix, description, enabled)
+        super().__init__(client, name, prefix, description, enabled, icon=':stopwatch:')
         self.commands = [set_channel('here!', 'Display time messages in this channel', client),
                          unset_channel('bye!', 'Stop displaying time messages in this server', client),
                          get_channel('where?', 'Show the channel where time messages are displayed in this server',
@@ -60,6 +59,7 @@ class TimeMessager(Component):
                        "server_id": message.guild.id
                        }
                 self.client.data_mapper_members.insert_doc(doc)
+                discord_logger.log("Added member to database: " + str(message.author.id), 'red')
 
             self.client.data_mapper_members.collection.update(
                 {"member_id": message.author.id, "server_id": message.guild.id},
@@ -82,7 +82,7 @@ class set_channel(Command):
     async def run(self, args, message):
         self.client.data_mapper_servers.set_specific_server_data(message.guild, "server_kid_channel",
                                                                  message.channel.id)
-        await message.channel.send('displaying here!')
+        await message.channel.send('`displaying here!`')
 
 
 class unset_channel(Command):
@@ -91,7 +91,7 @@ class unset_channel(Command):
 
     async def run(self, args, message):
         self.client.data_mapper_servers.set_specific_server_data(message.guild, "server_kid_channel", None)
-        await message.channel.send('Not displaying anymore!')
+        await message.channel.send('`Not displaying anymore!`')
 
 
 class get_channel(Command):
@@ -101,9 +101,10 @@ class get_channel(Command):
     async def run(self, args, message):
         channel_id = self.client.data_mapper_servers.get_specific_server_data(message.guild, "server_kid_channel")
         if self.client.get_channel(channel_id['server_kid_channel']) is not None:
-            await message.channel.send(self.client.get_channel(channel_id['server_kid_channel']).name)
+            await message.channel.send(
+                "`displaying in channel: " + self.client.get_channel(channel_id['server_kid_channel']).name + "`")
         else:
-            await message.channel.send("kid not active yet")
+            await message.channel.send("`kid not active yet`")
 
 
 class calc_all_streaks_local(Command):
@@ -113,17 +114,7 @@ class calc_all_streaks_local(Command):
     async def run(self, args, message):
         data = self.client.data_mapper_members.get_server_data(message.guild).sort("date")
         streaks = calc_streaks(data)
-        embed = discord.Embed()
-        for idx, streak in enumerate(sorted(streaks, key=lambda x: x['streak'], reverse=True)):
-            try:
-                user = await self.client.fetch_user(streak['member_id'])
-                name = user.name + "#" + user.discriminator
-            except discord.errors.NotFound:
-                name = 'Unknown user'
-            embed.add_field(name=str(idx + 1) + '. streak: ' + str(streak['streak']),
-                            value=name, inline=False)
-            if idx > 9:
-                break
+        embed = await self.generate_streak_embed(streaks)
         embed.title = 'Local leaderboard'
         embed.description = 'The top 10 highest streaks of this server. Get consecutive correct time message approved by the bot and earn your spot! '
         embed.set_footer(
@@ -131,14 +122,7 @@ class calc_all_streaks_local(Command):
                 self.client.approved) + ' reaction to your message it will be counted for your streaks!')
         await message.channel.send(embed=embed)
 
-
-class calc_all_streaks_global(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
-
-    async def run(self, args, message):
-        data = self.client.data_mapper_members.get_data().sort("date")
-        streaks = calc_streaks(data)
+    async def generate_streak_embed(self, streaks):
         embed = discord.Embed()
         for idx, streak in enumerate(sorted(streaks, key=lambda x: x['streak'], reverse=True)):
             try:
@@ -150,6 +134,17 @@ class calc_all_streaks_global(Command):
                             value=name, inline=False)
             if idx > 9:
                 break
+        return embed
+
+
+class calc_all_streaks_global(calc_all_streaks_local):
+    def __init__(self, cmd, desc, client):
+        super().__init__(cmd, desc, client)
+
+    async def run(self, args, message):
+        data = self.client.data_mapper_members.get_data().sort("date")
+        streaks = calc_streaks(data)
+        embed = await self.generate_streak_embed(streaks)
         embed.title = 'Global leaderboard'
         embed.description = 'The top 10 highest streaks of all time in any server. Get consecutive correct time message approved by the bot and earn your spot! '
         embed.set_footer(
@@ -171,11 +166,9 @@ def calc_streaks(data):
                     streak += 1
                 else:
                     streak = 1
-                print(str(member['member_id']) + ":" + str(streak))
             if streak > highest:
                 highest = streak
             last_date = log['date']
             last_occurrence = log['occurrence']
         streaks.append({'member_id': member['member_id'], 'streak': highest})
     return streaks
-
