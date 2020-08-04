@@ -4,20 +4,25 @@ from core.utils import discord_logger
 
 
 class Component:
-    def __init__(self, client, name, prefix, description='default component', enabled=True):
+    def __init__(self, client, name, prefix, description='default component', enabled=True, icon=':cd:'):
         self.client = client
         self.name = name
+        self.icon = icon
         self.prefix = prefix
         self.description = description
         self.enabled = enabled
         self.commands = []
 
     async def run(self, args, message):
+        if len(args) == 0:
+            await self.default_command(message)
+            return
         cmd = args[0]
         for command in self.commands:
             if command.cmd == cmd:
                 args.pop(0)
                 await command.run(args, message)
+                break
 
     def setup(self, client):
         discord_logger.log("initializing " + self.name, 'blue')
@@ -31,6 +36,7 @@ class Component:
     async def get_help_menu(self, menu_id):
         embed = discord.Embed()
         embed.title = self.name
+        embed.description = '```component prefix: ' + self.prefix + '```'
         embed.colour = discord.Colour.from_rgb(252, 3, 127)
         embed.set_footer(text=menu_id)
         embed = self.set_help_menu_fields(embed)
@@ -46,3 +52,6 @@ class Component:
 
     async def default_run(self, message):
         pass
+
+    async def default_command(self, message):
+        await message.channel.send('`Please supply a valid command`')
