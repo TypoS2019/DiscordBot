@@ -6,7 +6,7 @@ To make it easier to add new stuff to my discord bot i've reworked the core. By 
 
 ## Usage
 
-To run the bot you'll need access to a discord server with admin privilidges. By running main.py the bot will start. In config valid information to a mongoDB cluster need to be provided aswel as a discord application token. This token should not be shared.
+To run the bot you'll need access to a discord server with admin priviligdes. By running main.py the bot will start. In config valid information to a mongoDB cluster need to be provided aswel as a discord application token. This token should not be shared.
 
 ### ps
 
