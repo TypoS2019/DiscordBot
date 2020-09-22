@@ -1,10 +1,11 @@
 import discord
 
 from core.utils import discord_logger
+from core.utils.Enums import permissions
 
 
 class Component:
-    def __init__(self, client, name, prefix, description='default component', enabled=True, icon=':cd:'):
+    def __init__(self, client, name, prefix, description='default component', enabled=True, icon=':cd:', security=permissions.Member):
         self.client = client
         self.name = name
         self.icon = icon
@@ -12,16 +13,20 @@ class Component:
         self.description = description
         self.enabled = enabled
         self.commands = []
+        self.security = security
 
-    async def run(self, args, message):
+    async def run(self, args, message, sec_lvl):
         if len(args) == 0:
             await self.default_command(message)
             return
         cmd = args[0]
         for command in self.commands:
             if command.cmd == cmd:
-                args.pop(0)
-                await command.run(args, message)
+                if command.check_permission(sec_lvl):
+                    args.pop(0)
+                    await command.run(args, message)
+                else:
+                    await message.channel.send('`Permission denied`')
                 break
 
     def setup(self, client):
@@ -55,3 +60,6 @@ class Component:
 
     async def default_command(self, message):
         await message.channel.send('`Please supply a valid command`')
+
+    def check_permission(self, permission_no):
+        return self.security.int() >= permission_no.int()

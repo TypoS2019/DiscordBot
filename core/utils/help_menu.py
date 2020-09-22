@@ -1,15 +1,17 @@
 import discord
 import emoji
 
+from core.utils.Enums import reaction
+
 
 class Menu():
-    def __init__(self, items, menu_id, menu_up, menu_down, menu_select, menu_back):
+    def __init__(self, items, menu_id):
         self.components = items
         self.menu_id = menu_id
-        self.menu_up = menu_up
-        self.menu_down = menu_down
-        self.menu_select = menu_select
-        self.menu_back = menu_back
+        self.menu_up = reaction.MENU_UP
+        self.menu_down = reaction.MENU_DOWN
+        self.menu_select = reaction.MENU_SELECT
+        self.menu_back = reaction.MENU_DOWN
 
     async def send_menu(self, args, message):
         message = await message.channel.send(embed=self.create_menu())
