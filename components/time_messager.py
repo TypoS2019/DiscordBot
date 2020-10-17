@@ -4,6 +4,7 @@ import datetime
 import discord
 import emoji
 
+from core.utils.Enums import permissions
 from core.utils import discord_logger
 from core.base_classes.command import Command
 from core.base_classes.component import Component
@@ -12,14 +13,15 @@ from core.base_classes.component import Component
 class TimeMessager(Component):
     def __init__(self, client, name, prefix, description='default component', enabled=True):
         super().__init__(client, name, prefix, description, enabled, icon=':stopwatch:')
-        self.commands = [set_channel('here!', 'Display time messages in this channel', client),
-                         unset_channel('bye!', 'Stop displaying time messages in this server', client),
-                         get_channel('where?', 'Show the channel where time messages are displayed in this server',
-                                     client),
-                         calc_all_streaks_local('leaderboard',
-                                                'Show the leaderboard for the longest streaks in this server', client),
-                         calc_all_streaks_global('leaderboard_global',
-                                                 'Show the leaderboard for the longest streaks of all time', client)]
+        self.commands = [
+            set_channel('here!', 'Display time messages in this channel', client, security=permissions.Admin),
+            unset_channel('bye!', 'Stop displaying time messages in this server', client, security=permissions.Admin),
+            get_channel('where?', 'Show the channel where time messages are displayed in this server', client,
+                        security=permissions.Member),
+            calc_all_streaks_local('leaderboard', 'Show the leaderboard for the longest streaks in this server', client,
+                                   security=permissions.Member),
+            calc_all_streaks_global('leaderboard_global', 'Show the leaderboard for the longest streaks of all time',
+                                    client, security=permissions.Member)]
 
     def extended_setup(self, client):
         discord_logger.log(self.name + ": starting background process", 'blue')
@@ -40,7 +42,8 @@ class TimeMessager(Component):
                 discord_logger.log('occurrence: [' + string + ']', 'red')
                 for channel_id in channels:
                     channel = self.client.get_channel(channel_id['server_kid_channel'])
-                    await channel.send(string)
+                    if channel is not None:
+                        await channel.send(string)
                 last_occurrence_minute = time.minute
                 last_occurrence_hour = time.hour
             await asyncio.sleep(1)
@@ -76,8 +79,8 @@ class TimeMessager(Component):
 
 
 class set_channel(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         self.client.data_mapper_servers.set_specific_server_data(message.guild, "server_kid_channel",
@@ -86,8 +89,8 @@ class set_channel(Command):
 
 
 class unset_channel(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         self.client.data_mapper_servers.set_specific_server_data(message.guild, "server_kid_channel", None)
@@ -95,8 +98,8 @@ class unset_channel(Command):
 
 
 class get_channel(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         channel_id = self.client.data_mapper_servers.get_specific_server_data(message.guild, "server_kid_channel")
@@ -108,12 +111,12 @@ class get_channel(Command):
 
 
 class calc_all_streaks_local(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         data = self.client.data_mapper_members.get_server_data(message.guild).sort("date")
-        streaks = calc_streaks(data)
+        streaks = await calc_streaks(data)
         embed = await self.generate_streak_embed(streaks)
         embed.title = 'Local leaderboard'
         embed.description = 'The top 10 highest streaks of this server. Get consecutive correct time message approved by the bot and earn your spot! '
@@ -138,12 +141,12 @@ class calc_all_streaks_local(Command):
 
 
 class calc_all_streaks_global(calc_all_streaks_local):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         data = self.client.data_mapper_members.get_data().sort("date")
-        streaks = calc_streaks(data)
+        streaks = await calc_streaks(data)
         embed = await self.generate_streak_embed(streaks)
         embed.title = 'Global leaderboard'
         embed.description = 'The top 10 highest streaks of all time in any server. Get consecutive correct time message approved by the bot and earn your spot! '
@@ -153,22 +156,46 @@ class calc_all_streaks_global(calc_all_streaks_local):
         await message.channel.send(embed=embed)
 
 
-def calc_streaks(data):
+async def calc_streaks(data):
     streaks = []
+    coros = []
     for member in data:
-        highest = 0
-        streak = 1
-        last_date = None
-        last_occurrence = None
-        for log in member['occurrences']:
-            if last_date is not None:
-                if (log['date'] - last_date) < datetime.timedelta(hours=1, minutes=5) and log['occurrence'] != last_occurrence:
-                    streak += 1
-                else:
-                    streak = 1
-            if streak > highest:
-                highest = streak
-            last_date = log['date']
-            last_occurrence = log['occurrence']
-        streaks.append({'member_id': member['member_id'], 'streak': highest})
+        # highest = 0
+        # streak = 1
+        # last_date = None
+        # last_occurrence = None
+        # for log in member['occurrences']:
+        #     if last_date is not None:
+        #         if (log['date'] - last_date) < datetime.timedelta(hours=1, minutes=5) and log[
+        #             'occurrence'] != last_occurrence:
+        #             streak += 1
+        #         else:
+        #             streak = 1
+        #     if streak > highest:
+        #         highest = streak
+        #     last_date = log['date']
+        #     last_occurrence = log['occurrence']
+        coros.append(calc_streak(member, streaks))
+
+    for coro in coros:
+        await coro
     return streaks
+
+
+async def calc_streak(member, streaks):
+    highest = 0
+    streak = 1
+    last_date = None
+    last_occurrence = None
+    for log in member['occurrences']:
+        if last_date is not None:
+            if (log['date'] - last_date) < datetime.timedelta(hours=1, minutes=5) and log[
+                'occurrence'] != last_occurrence:
+                streak += 1
+            else:
+                streak = 1
+        if streak > highest:
+            highest = streak
+        last_date = log['date']
+        last_occurrence = log['occurrence']
+    streaks.append({'member_id': member['member_id'], 'streak': highest})

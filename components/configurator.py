@@ -1,5 +1,6 @@
 from core.base_classes.command import Command
 from core.base_classes.component import Component
+from core.utils.Enums import permissions
 from core.utils import discord_logger
 
 
@@ -7,12 +8,12 @@ class Configurator(Component):
 
     def __init__(self, client, name, prefix, description='default component', enabled=True):
         super().__init__(client, name, prefix, description, enabled, icon=':gear:')
-        self.commands = [set_prefix('prefix', 'Set the bots prefix to a new character', client)]
+        self.commands = [set_prefix('prefix', 'Set the bots prefix to a new character', client, security=permissions.Admin)]
 
 
 class set_prefix(Command):
-    def __init__(self, cmd, desc, client):
-        super().__init__(cmd, desc, client)
+    def __init__(self, cmd, desc, client, security):
+        super().__init__(cmd, desc, client, security=security)
 
     async def run(self, args, message):
         if len(args) == 0:
