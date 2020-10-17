@@ -2,12 +2,13 @@ from core.utils.Enums import permissions
 
 
 class Command:
-    def __init__(self, cmd, desc, client, enabled=True, security=permissions.Member):
+    def __init__(self, cmd, desc, client, enabled=True, hidden=False, security=permissions.Member):
         self.cmd = cmd
         self.desc = desc
         self.enabled = enabled
         self.client = client
         self.security = security
+        self.hidden = hidden
 
     async def run(self, args, message):
         message.channel.send('Hello!')

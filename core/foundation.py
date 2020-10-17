@@ -1,6 +1,7 @@
 import configparser
 
 import discord
+from gtts import gTTS
 
 from components.configurator import Configurator
 from components.session_planner import GameSessions
@@ -47,12 +48,10 @@ class HackerBot(discord.Client):
 
         self.add_component(TimeMessager(self, 'Time Messages', 'kid', 'Kid\'s happy time messages'))
         self.add_component(Configurator(self, 'Configurator', 'config', 'Edit settings and bot behavior'))
-        self.add_component(GameSessions(self, 'Game Sessions', 'session', 'Plan a session on your server', enabled=False))
+        self.add_component(
+            GameSessions(self, 'Game Sessions', 'session', 'Plan a session on your server', enabled=False))
 
         self.menu = Menu(self.get_enabled_components(self.components), self.menu_id)
-
-
-
 
     async def router(self, args, message):
         self.log_incomming_command(message)
@@ -76,6 +75,7 @@ class HackerBot(discord.Client):
             await message.channel.send('`Component not found`')
 
     async def on_ready(self):
+        # await self.tts_to_channel(689541623201398810, "hello, my sole purpose is to say this message, bye!")
         self.data_mapper_servers.prepare_all_discord_server_data(self)
         string = "No components loaded"
         if len(self.components) > 0:
@@ -113,10 +113,8 @@ class HackerBot(discord.Client):
         self.components.append(component)
 
     def refresh_components(self):
-        self.menu = Menu(self.get_enabled_components(self.components), self.menu_id, self.menu_up, self.menu_down, self.menu_select, self.menu_back)
-
-
-
+        self.menu = Menu(self.get_enabled_components(self.components), self.menu_id, self.menu_up, self.menu_down,
+                         self.menu_select, self.menu_back)
 
     def add_prefix(self, prefix):
         discord_logger.log("preparing prefix (prefix: " + prefix + ")", 'yellow')
@@ -141,4 +139,22 @@ class HackerBot(discord.Client):
         return enabled_components
 
     def log_incomming_command(self, message):
-        discord_logger.log("Handling incomming command: '"+message.content+"' from: '" + message.author.name + "'(" + str(message.author.id) + ") in channel: '" + message.channel.name + "' server: '"+message.guild.name + "'(" + str(message.guild.id) + ")", 'header', save=True, bot=self)
+        discord_logger.log(
+            "Handling incomming command: '" + message.content + "' from: '" + message.author.name + "'(" + str(
+                message.author.id) + ") in channel: '" + message.channel.name + "' server: '" + message.guild.name + "'(" + str(
+                message.guild.id) + ")", 'header', save=True, bot=self)
+
+    async def tts_to_channel(self, channel, message):
+        tts = gTTS(message, lang='en')
+        tts.save("tts.mp3")
+        discord_logger.log("tts message: '"+ message + "' to channel: " + str(channel), 'header', save=True, bot=self)
+        voice = await self.get_channel(channel).connect()
+
+        voice.play(discord.FFmpegPCMAudio("tts.mp3"))
+        voice.source = discord.PCMVolumeTransformer(voice.source)
+        voice.source.volume = 1
+        while voice.is_playing():
+            pass
+        await voice.disconnect()
+
+

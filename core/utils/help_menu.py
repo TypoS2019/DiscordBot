@@ -11,7 +11,7 @@ class Menu():
         self.menu_up = reaction.MENU_UP
         self.menu_down = reaction.MENU_DOWN
         self.menu_select = reaction.MENU_SELECT
-        self.menu_back = reaction.MENU_DOWN
+        self.menu_back = reaction.MENU_BACK
 
     async def send_menu(self, args, message):
         message = await message.channel.send(embed=self.create_menu())
@@ -19,29 +19,29 @@ class Menu():
 
     async def add_navigation_root_reactions(self, message):
         await message.clear_reactions()
-        await message.add_reaction(emoji.emojize(self.menu_up))
-        await message.add_reaction(emoji.emojize(self.menu_down))
-        await message.add_reaction(emoji.emojize(self.menu_select))
+        await message.add_reaction(emoji.emojize(self.menu_up.value))
+        await message.add_reaction(emoji.emojize(self.menu_down.value))
+        await message.add_reaction(emoji.emojize(self.menu_select.value))
 
     async def update_menu(self, message, cmd):
         if isinstance(cmd, str):
             cmd = emoji.demojize(cmd)
-            if cmd in [self.menu_up, self.menu_down, self.menu_select]:
+            if cmd in [self.menu_up.value, self.menu_down.value, self.menu_select.value]:
                 index = 1
                 for idx, field in enumerate(message.embeds[0].fields):
                     if '**__' in field.name:
                         index = idx
-                if cmd == self.menu_up:
+                if cmd == self.menu_up.value:
                     index -= 1
-                elif cmd == self.menu_down:
+                elif cmd == self.menu_down.value:
                     index += 1
-                if cmd == self.menu_select:
+                if cmd == self.menu_select.value:
                     await message.clear_reactions()
                     await message.edit(embed=await self.components[index].get_help_menu(self.menu_id))
-                    await message.add_reaction(emoji.emojize(self.menu_back))
+                    await message.add_reaction(emoji.emojize(self.menu_back.value))
                 else:
                     await message.edit(embed=self.create_menu(index=index))
-            elif cmd == self.menu_back:
+            elif cmd == self.menu_back.value:
                 await message.edit(embed=self.create_menu())
                 await self.add_navigation_root_reactions(message)
 

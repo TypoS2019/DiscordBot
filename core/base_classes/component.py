@@ -5,13 +5,14 @@ from core.utils.Enums import permissions
 
 
 class Component:
-    def __init__(self, client, name, prefix, description='default component', enabled=True, icon=':cd:', security=permissions.Member):
+    def __init__(self, client, name, prefix, description='default component', enabled=True, hidden=False, icon=':cd:', security=permissions.Member):
         self.client = client
         self.name = name
         self.icon = icon
         self.prefix = prefix
         self.description = description
         self.enabled = enabled
+        self.hidden = hidden
         self.commands = []
         self.security = security
 
@@ -50,7 +51,9 @@ class Component:
     def set_help_menu_fields(self, embed):
         if len(self.commands) > 0:
             for idx, command in enumerate(self.commands):
-                embed.add_field(name='`' + command.cmd + '`', value=command.desc, inline=False)
+                if not command.hidden:
+                    if command.enabled:
+                        embed.add_field(name='`' + command.cmd + '`', value=command.desc, inline=False)
         else:
             embed.add_field(name='This is where i would put my commands,', value='If i had any...')
         return embed
